@@ -1,0 +1,359 @@
+<%- include('layout'); -%>
+<body>
+
+            
+        
+        <div class="col-sm-1/2 pull-right" style="background-color:rgb(11, 11, 12);">
+                <a href="/signout ">SignOut</a>                        
+        </div>
+        <div class="row"> 
+             <div id="clockdiv" class="col-md-2 pull-right">
+                    Minutes: <span class="minutes">Loading...</span><br>
+                    Seconds: <span class="seconds"></span>
+            </div>
+        </div>
+
+
+
+        
+
+        
+    <div class = "col-sm-6 col-md-4 col-md-offset-4">
+                <% if (user) { %>  
+                    <h1 class = "text-center login-title" >Welcome <%= user.username%>. Check your details below:</h1>
+                <% } %>                        
+    </div>
+
+
+
+    <div class = "col-md-4"></div>
+    
+    <div id = "wrapper">
+        <div class = "editor_wrapper">
+                <div class="dropdown1" >
+                        <div id="Language" class="float-right">
+                            <select id="mode" size="1" >
+                                    
+                                    <option value="ace/mode/c_cpp" data-lang="10">c_cpp</option>
+                                   
+                                    <option value="ace/mode/csharp" data-lang="16">csharp</option>
+                                    
+                                    <option value="ace/mode/erlang" data-lang="21">erlang</option>
+                            
+                                    <option value="ace/mode/golang" data-lang="22">golang</option>
+                                  
+                                    <option value="ace/mode/haskell" data-lang="23">haskell</option>
+                                    
+                                    <option value="ace/mode/java" data-lang="27">java</option>
+                                    <option value="ace/mode/javascript" data-lang="29" selected>javascript</option>
+                                    
+                                    
+                                    <option value="ace/mode/ocaml" data-lang="31">ocaml</option>
+                                    <option value="ace/mode/pascal" data-lang="33">pascal</option>
+                                   
+                                    <option value="ace/mode/python" data-lang="34">python</option>
+                                  
+                                    <option value="ace/mode/ruby"data-lang="38">ruby</option>
+                                    
+                                    <option value="ace/mode/text" data-lang="43">text</option>
+                             
+                            </select>
+                        </div>
+                </div>
+                    <div id="editor">
+                </div>
+            </div>
+        <div id="question" class = "scroll">
+        </div>
+        <div id="editor2">function foo(items) {
+                var x = "All this is syntax highlighted";
+                return x;
+        }</div>
+    </div> 
+    <div id="buttons">
+        <input id = "compile" type="button" name="Compile" value="compile" onclick="compile()"/>
+        <input type="button" name="Submit" value="submit"  onclick="submit()"/>
+        <input type="hidden" id="myField" name="text" value="{{this.text}}" />
+    
+        </div>   
+        <div id="result">
+            <div class = "whitespace" id="status"></div>
+            <div>Sample Input</div> 
+            <div class = "whitespace" id="sampleinput"></div>
+            <div>Sample Output</div>
+            <div class = "whitespace" id="sampleoutput"></div>
+            <div>Your Output</div>
+            <div class = "whitespace" id="youroutput"></div>
+            <div>Your Output</div>
+            <div class = "whitespace" id="opponentsResult"></div>
+        </div>
+        <div class="modal"><!-- Place at bottom of page --></div>
+
+<<!-- The Modal -->
+<div id="myModal" class="modalpopup">
+
+        <!-- Modal content -->
+        <div class="modalpopup-content">
+                <div class="modalpopup-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                        <h4 class="modalpopup-title" id="myModalLabel">Challenge Request</h4>
+                </div>
+                <div class="modalpopup-body" id="popudbody">
+                        ...
+                </div>
+                <div class="modalpopup-footer">
+                        <button id = "accepted" type="button" class="btn btn-default" data-dismiss="modal" onclick="challengeAccepted()">Accept</button>
+                        <button id = "rejected" type="button" class="btn btn-primary" onclick="challengeRejected()">Reject</button>
+                </div>
+        </div>
+      
+</div>
+      
+    <script>
+        
+        var socket;
+        var langid;
+        var editor;
+        var editor2;
+        var url ;
+        //filter: blur(10px);
+        $(document).ready(function(){
+            $("#mode").change(function(){
+                var element = $("option:selected", this);
+                var myTag = element.attr("data-lang");
+                 console.log(myTag);
+                 langid=myTag;
+                 console.log(element.val());
+                 editor.session.setMode(element.val());
+            })
+                 
+            //$(".loader").hide()
+            $("#clockdiv").hide();
+            $("#opponentsResult").hide();
+            var data = {
+                name: "",
+                text:"",
+                socketid:""
+            }
+            var userName = "<%= user.username%>";
+            console.log(userName);
+            $('#compile').bind("click",compile);
+            socket = io.connect();
+            console.log(socket.id);
+            
+            var text = "";
+            
+            var myId;
+            socket.on('connect', function(){
+                myId = socket.id;
+                socket.emit('userConnected', {userName:userName, socketid:socket.id});
+                editor = ace.edit("editor");
+                editor.setTheme("ace/theme/monokai");
+                editor.session.setMode("ace/mode/javascript");
+
+                editor2 = ace.edit("editor2");
+                editor2.setTheme("ace/theme/monokai");
+                editor2.session.setMode("ace/mode/javascript");
+                var text = '';             
+                    editor.session.on('change', function(delta) {
+                        console.log($("#clockdiv").attr("data-inMatch"));
+                        text = editor.getValue();
+                        data.name = name;
+                        data.text = text;
+                        data.socketid = socket.id;
+                        //console.log(data);
+                        if($("#clockdiv").attr("data-inMatch") == 'true'){
+                            socket.emit('codeInEditor', data);  
+                        }
+                     });
+                
+                socket.on('codeInOpponentsEditor', function(response)  {
+                    //if(response.name != name)  {
+                        editor2.setValue(response.text);
+                    //}
+                });
+                    
+                socket.on('newUserConnected', function(response)  {
+                    console.log(response);
+                    $( "#question" ).empty();
+                    response.userArray.forEach(element => {
+                        //if(element.userName != userName){
+                           // $('#question').append($("#batchInsert").html());
+                            //$('#user-name').text(element.userName)
+                            var $newdiv1 = $('<div class="chat-users">'+
+                                                    '<div class="users-list">'+
+                                                        '<div class="chat-user">'+
+                                                        '<img class="chat-avatar" src="https://bootdey.com/img/Content/avatar/avatar1.png" alt="">'+
+                                                        '<div class="chat-user-name">'+
+                                                            '<span>'+element.userName+'</span>'+
+                                                            '<Button class = "btn btn-primary btn-sm pull-right" onclick="connectToUser(this)" data-myid="'+element.socketid+'">Connect</Button>'+
+                                                        '</div>'+
+                                                    '</div>'+
+                                                '<div>' );
+                        $('#question').append($newdiv1);
+                        //}
+                    });
+                });
+
+                socket.on('challengeReceived', function(response)  {
+                    console.log(response);
+                    $('#popudbody').text('Hi '+response.name+' wants to do programming with you')
+                    $("#myModal").css("display", "block");
+                });
+
+                socket.on('challengeAccepted', function(response)  {
+                
+                });
+
+                socket.on('hideSpinner', function(response)  {
+                    hideSpinner();
+                });
+
+                socket.on('loadChallenge', function(response){
+                    $('#clockdiv').show();
+                    $('#clockdiv').attr('data-inMatch', 'true');
+                    var filterVal = 'blur(10px)';
+                    $('#editor2')
+                    .css('filter',filterVal)
+                    .css('webkitFilter',filterVal)
+                    .css('mozFilter',filterVal)
+                    .css('oFilter',filterVal)
+                    .css('msFilter',filterVal);
+
+                    url = response.questionUrl;
+                    console.log(url);
+                    postData = {
+                        url: url
+                    }
+                    $.ajax({
+                        type: "POST",
+                        url: "/problem",
+                        data: postData,
+                        success: loadChallenge,
+                        dataType: 'json',
+                        langid:langid
+                    });
+
+                })
+                socket.on('timesUp', function(response)  {
+                    $("#opponentsResult").show();
+                    var filterValue = $('#editor2').css('filter');
+                    if(filterValue == 'blur(10px)'){
+                        var filterVal = 'blur(0px)';
+                        $('#editor2')
+                        .css('filter',filterVal)
+                        .css('webkitFilter',filterVal)
+                        .css('mozFilter',filterVal)
+                        .css('oFilter',filterVal)
+                        .css('msFilter',filterVal);
+                    }
+                });
+
+                socket.on('timer', function(response)  {
+                    console.log($('#clockdiv .minutes').html());
+                    $('#clockdiv .minutes').text(response.time.minutes);
+                    $('#clockdiv .seconds').text(response.time.seconds);
+                });
+                socket.on('opponentsResult', function(response){
+                    $("#opponentsResult").html(response);
+                    console.log(response);
+                });
+            });//End of Socket Connection
+       });//End of jquery
+
+       function loadChallenge(data){
+                        $("#myModal").css("display", "none");   
+                        $("body").removeClass("loading");
+                        $('#question').empty();
+                        $('#question').html(data.statement);
+                        $('#sampleinput').html(data.sampleInput);
+                        $('#sampleoutput').html(data.sampleOutput);
+       }
+       function challengeRejected(){
+                    $("#myModal").css("display", "none");
+                    socket.emit('challengeRejected',{opponentSocketID:socket.id});
+        } 
+        function challengeAccepted(){
+                        socket.emit('challengeAccepted',{opponentSocketID:socket.id});
+        }
+       function compile(){
+            $('#status').text("Compiling...");
+            let text = editor.getValue();
+            let sampleInput = $('#sampleinput').text();
+            let sampleOutput  = $('#sampleoutput').text();
+            postData = {
+                code: text,
+                sampleInput: sampleInput,
+                sampleOutput: sampleOutput,
+                type:'compile'
+            }
+            $.ajax({
+                type: "POST",
+                url: "/",
+                data: postData,
+                success: getCompileData,
+                dataType: 'json'
+            });
+            //document.getElementById('myField').value = text;
+            //console.log(document.getElementById('myField').value);
+        }
+        function getCompileData(data)  {
+            console.log(data)
+            $('#status').text(data.compileData.status);
+            $('#youroutput').text(data.compileData.result);
+        }
+
+        function submit(){
+            $('#status').text("Submitting...");
+            let text = editor.getValue();
+            postData = {
+                code: text,
+                url: url,
+                type:'submit',
+                socketid: socket.id
+            }
+            $.ajax({
+                type: "POST",
+                url: "/",
+                data: postData,
+                success: getCompileData,
+                dataType: 'json'
+            });
+        }
+        function connectToUser(obj){
+            var friendsId = obj.getAttribute('data-myid');
+            var privateConnection ={
+                name:"<%= user.username%>",
+                challengerSocketID:socket.id,
+                opponentSocketID:friendsId
+            }
+            $.ajax({
+                type: "POST",
+                url: "/connectToUser",
+                data: privateConnection,
+                success: responseFromFriend,
+                beforeSend: showSpinner,
+                complete: hideSpinner, 
+                dataType: 'json'
+            });
+        }
+        function showSpinner(){
+            $body = $("body");
+            $body.addClass("loading");
+            //$( "#question" ).empty();
+            //$('#question').append('<div class="loader"></div>');
+            //$(".loader").show();
+        }
+        function hideSpinner(){
+           // $(".loader").hide();
+           setTimeout(()=>{$body.removeClass("loading");},2000)
+        }0
+        function responseFromFriend(data){
+
+        }
+    </script>
+    
+          
+      
+</body>
+</html>

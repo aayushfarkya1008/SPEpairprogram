@@ -1,0 +1,43 @@
+import java.io.*;
+import java.util.*;
+ 
+class TestClass {
+    public static void main(String args[] ) throws Exception {
+       
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String line = br.readLine();
+        int N = Integer.parseInt(line);
+        int a[]=new int[N];
+       int sum=0;
+        
+       String s[] = br.readLine().split("\\s+");
+        for (int i = 0; i < N; i++) {
+         a[i]=Integer.parseInt(s[i]);
+        }
+        Arrays.sort(a);
+         //int j=0;int k=0;
+        for(int i=0;i<N;i++)
+        {
+            
+            if(a[i]%2==0)
+            {
+                System.out.print(a[i]+" ");
+                sum=sum+a[i];
+            }
+            
+        }
+        System.out.print(sum+" ");
+        sum=0;
+        for(int i=0;i<N;i++)
+        {
+            
+            if(a[i]%2!=0)
+            {
+                System.out.print(a[i]+" ");
+                sum=sum+a[i];
+            }
+            
+        }
+        System.out.print(sum+" ");
+    }
+}
